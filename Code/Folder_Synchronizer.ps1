@@ -89,7 +89,10 @@ function Sync-FolderItems {
     if(!(Test-Path -LiteralPath $DestinationFolder -PathType container)){
         New-Item -Path $DestinationFolder -ItemType "Directory" -WhatIf:$WhatIf|out-null
     }
+
+
     $SourceFolderChildItems=$DestinationFolderChildItems=@()
+    
     $SourceFolderChildItems=Get-ChildItem -Path $SourceFolder
     $DestinationFolderChildItems=Get-ChildItem -Path $DestinationFolder
 
@@ -120,9 +123,12 @@ function Sync-FolderItems {
 
    foreach($DestinationFolderChildFile in $DestinationFolderChildFiles){
     $SameFileInSource=$SourceFolderChildFiles|Where-Object{$_.name -eq $DestinationFolderChildFile.name}
-    if (($SameFileInSource.LastWriteTime -gt $DestinationFolderChildFile.LastWriteTime)) {
-        Copy-Item -LiteralPath ($SourceFolder+"\"+$SameFileInSource.Name) -Destination ($DestinationFolder+"\"+$SameFileInSource.Name) -Force -WhatIf:$WhatIf
+    if($null -ne $SameFileInSource){
+        if (($SameFileInSource.LastWriteTime -gt $DestinationFolderChildFile.LastWriteTime)) {
+            Copy-Item -LiteralPath ($SourceFolder+"\"+$SameFileInSource.Name) -Destination ($DestinationFolder+"\"+$SameFileInSource.Name) -Force -WhatIf:$WhatIf
+        }
     }
+
    }
    foreach($ChildFolderItem in $SourceFolderChildFolders)
         {
