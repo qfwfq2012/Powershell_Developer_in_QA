@@ -111,15 +111,29 @@ function Sync-FolderItems {
 
 
     if(!(Test-Path -LiteralPath $DestinationFolder -PathType container)){
-        New-Item -Path $DestinationFolder -ItemType "Directory" -WhatIf:$WhatIf|out-null
+        try {
+            New-Item -Path $DestinationFolder -ItemType "Directory" -ErrorAction Stop -WhatIf:$WhatIf|out-null
+        }
+        catch {
+            <#Do this if a terminating exception happens#>
+        }
     }
 
 
     $SourceFolderChildItems=$DestinationFolderChildItems=@()
+    try {
+        $SourceFolderChildItems=Get-ChildItem -Path $SourceFolder -ErrorAction Stop
+    }
+    catch {
+        <#Do this if a terminating exception happens#>
+    }
+    try {
+        $DestinationFolderChildItems=Get-ChildItem -Path $DestinationFolder -ErrorAction Stop
+    }
+    catch {
+        <#Do this if a terminating exception happens#>
+    }
     
-    $SourceFolderChildItems=Get-ChildItem -Path $SourceFolder
-    $DestinationFolderChildItems=Get-ChildItem -Path $DestinationFolder
-
     $SourceFolderChildFiles=$DestinationFolderChildFiles=@()
     $SourceFolderChildFolders=$DestinationFolderChildFolders=@()
     $SourceFolderChildFiles+=$SourceFolderChildItems|Where-Object {$_.PSIsContainer -eq $false}
@@ -133,15 +147,30 @@ function Sync-FolderItems {
 
    foreach($Diff_File in $Diff_Files_Source8Dest){
     if ($Diff_File.SideIndicator -eq "<=") {
-        Copy-Item -LiteralPath ($SourceFolder+"\"+$Diff_File.Name) -Destination ($DestinationFolder+"\"+$Diff_File.Name) -WhatIf:$WhatIf
+        try {
+            Copy-Item -LiteralPath ($SourceFolder+"\"+$Diff_File.Name) -Destination ($DestinationFolder+"\"+$Diff_File.Name) -ErrorAction Stop -WhatIf:$WhatIf
+        }
+        catch {
+            <#Do this if a terminating exception happens#>
+        }
     }elseif ($Diff_File.SideIndicator -eq "=>") {
-        Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_File.Name) -WhatIf:$WhatIf
+        try {
+            Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_File.Name) -ErrorAction Stop -WhatIf:$WhatIf
+        }
+        catch {
+            <#Do this if a terminating exception happens#>
+        }
     }
    }
 
    foreach ($Diff_Folder in $Diff_Folders_Source8Dest) {
     if ($Diff_Folder.SideIndicator -eq "=>") {
-        Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_Folder.Name) -Recurse -WhatIf:$WhatIf
+        try {
+            Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_Folder.Name) -Recurse -ErrorAction Stop -WhatIf:$WhatIf
+        }
+        catch {
+            <#Do this if a terminating exception happens#>
+        }
     }
    }
 
@@ -149,7 +178,13 @@ function Sync-FolderItems {
     $SameFileInSource=$SourceFolderChildFiles|Where-Object{$_.name -eq $DestinationFolderChildFile.name}
     if($null -ne $SameFileInSource){
         if (($SameFileInSource.LastWriteTime -gt $DestinationFolderChildFile.LastWriteTime)) {
-            Copy-Item -LiteralPath ($SourceFolder+"\"+$SameFileInSource.Name) -Destination ($DestinationFolder+"\"+$SameFileInSource.Name) -Force -WhatIf:$WhatIf
+            try {
+                Copy-Item -LiteralPath ($SourceFolder+"\"+$SameFileInSource.Name) -Destination ($DestinationFolder+"\"+$SameFileInSource.Name) -Force -ErrorAction Stop  -WhatIf:$WhatIf
+
+            }
+            catch {
+                <#Do this if a terminating exception happens#>
+            }
         }
     }
 
