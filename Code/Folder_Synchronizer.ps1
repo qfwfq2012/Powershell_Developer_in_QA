@@ -57,6 +57,9 @@
         [string]
         $LogFile=$PSScriptRoot+"\Folder_Synchronizer_Log.txt",
 
+        [switch]
+        $WriteHostOff=$false
+
         #[string[]]
        # $ExcludeList=$null,
 
@@ -78,7 +81,7 @@
             $Message,
      
             [string]
-            $LogFile,
+            $LogFile='',
 
             [switch]
             $WriteHostOff=$false
@@ -87,7 +90,7 @@
         $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
         $Line = "$Stamp $Level $Message"
      
-        If (Test-Path $LogFile ) {
+        If ('' -ne $LogFile ) {
             Add-Content $LogFile -Value $Line
         }
         if(!$WriteHostOff){
@@ -230,5 +233,18 @@ function Sync-FolderItems {
 }
 
 
-    
  
+#main
+Write-Log -Level INFO -Message "Script is started." -WriteHostOff:$WriteHostOff
+if (!(Test-Path -LiteralPath $LogFile -PathType leaf)) {
+    write-log -Leve INFO -Message "Creating new logfile $LogFile" -WriteHostOff:$WriteHostOff
+    New-Item -Path $LogFile -ItemType File|Out-Null
+    write-log -Leve INFO -Message "Created new logfile $LogFile" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+}
+write-log -Leve INFO -Message "Script is started." -LogFile $LogFile -WriteHostOff:$WriteHostOff
+write-log -Leve INFO -Message "Job is about to start to syc Source:$Source with Replica:$Replica" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+Sync-FolderItems -SourceFolder $Source -DestinationFolder $Replica -LogFile $LogFile -WriteHostOff:$WriteHostOff
+write-log -Level INFO -Message "Scritpt is ending with $($error|Measure-Object|select -ExpandProperty count) errors" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+write-log -Level INFO -Message "Script is finished. Looking forward to see you!!" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+
+Exit
