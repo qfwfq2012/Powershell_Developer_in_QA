@@ -78,16 +78,22 @@
             $Message,
      
             [string]
-            $logfile
+            $LogFile,
+
+            [switch]
+            $WriteHostOff=$false
         )
      
         $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
         $Line = "$Stamp $Level $Message"
      
-        If (Test-Path $logfile -ErrorAction SilentlyContinue) {
-            Add-Content $logfile -Value $Line
+        If (Test-Path $LogFile ) {
+            Add-Content $LogFile -Value $Line
         }
-        Write-Output $Line
+        if(!$WriteHostOff){
+            Write-Output $Line
+        }
+       
     }
 
 function Sync-FolderItems {
@@ -106,16 +112,28 @@ function Sync-FolderItems {
         [string[]]
         $ExcludedList,
 
+        [string]
+        $LogFile,
+
+        [switch]
+        $WriteHostOff=$false,
+
         [switch] $WhatIf=$false
+
     )
 
+    
 
     if(!(Test-Path -LiteralPath $DestinationFolder -PathType container)){
         try {
+            Write-Log -Level INFO -Message "Creating Folder in Path: $($DestinationFolder)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
             New-Item -Path $DestinationFolder -ItemType "Directory" -ErrorAction Stop -WhatIf:$WhatIf|out-null
+            Write-Log -Level INFO -Message "Successfully created folder in Path: $($DestinationFolder)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
         catch {
-            <#Do this if a terminating exception happens#>
+            Write-Log -Level ERROR -Message "Failed to create folder in Path: $($DestinationFolder)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+            Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
+
         }
     }
 
@@ -125,13 +143,15 @@ function Sync-FolderItems {
         $SourceFolderChildItems=Get-ChildItem -Path $SourceFolder -ErrorAction Stop
     }
     catch {
-        <#Do this if a terminating exception happens#>
+        Write-Log -Level ERROR -Message "Failed to get child items in source Path: $($SourceFolder)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+        Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
     }
     try {
         $DestinationFolderChildItems=Get-ChildItem -Path $DestinationFolder -ErrorAction Stop
     }
     catch {
-        <#Do this if a terminating exception happens#>
+        Write-Log -Level ERROR -Message "Failed to get child items in source Path: $($DestinationFolder)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+        Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
     }
     
     $SourceFolderChildFiles=$DestinationFolderChildFiles=@()
@@ -148,17 +168,23 @@ function Sync-FolderItems {
    foreach($Diff_File in $Diff_Files_Source8Dest){
     if ($Diff_File.SideIndicator -eq "<=") {
         try {
+            Write-Log -Level INFO -Message "Copying file, from: $($SourceFolder+"\"+$Diff_File.Name) to:$($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
             Copy-Item -LiteralPath ($SourceFolder+"\"+$Diff_File.Name) -Destination ($DestinationFolder+"\"+$Diff_File.Name) -ErrorAction Stop -WhatIf:$WhatIf
+            Write-Log -Level INFO -Message "Successfully copied file,  from: $($SourceFolder+"\"+$Diff_File.Name) to:$($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
         catch {
-            <#Do this if a terminating exception happens#>
+            Write-Log -Level ERROR -Message "Filed to copy file,  from: $($SourceFolder+"\"+$Diff_File.Name) to:$($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+            Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
     }elseif ($Diff_File.SideIndicator -eq "=>") {
         try {
+            Write-Log -Level INFO -Message "Removing file, from: $($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
             Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_File.Name) -ErrorAction Stop -WhatIf:$WhatIf
+            Write-Log -Level INFO -Message "Successfully removed file, from: $($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
         catch {
-            <#Do this if a terminating exception happens#>
+            Write-Log -Level ERROR -Message "Filed to remove file,  from: $($DestinationFolder+"\"+$Diff_File.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+            Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
     }
    }
@@ -166,10 +192,13 @@ function Sync-FolderItems {
    foreach ($Diff_Folder in $Diff_Folders_Source8Dest) {
     if ($Diff_Folder.SideIndicator -eq "=>") {
         try {
+            Write-Log -Level INFO -Message "Removing folder, path: $($DestinationFolder+"\"+$Diff_Folder.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
             Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_Folder.Name) -Recurse -ErrorAction Stop -WhatIf:$WhatIf
+            write-log -Level INFO -Message "Successfully removed Folder, path: $($DestinationFolder+"\"+$Diff_Folder.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
         catch {
-            <#Do this if a terminating exception happens#>
+            Write-Log -Level ERROR -Message "Filed to remove folder, path: $($DestinationFolder+"\"+$Diff_Folder.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+            Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
         }
     }
    }
@@ -179,11 +208,14 @@ function Sync-FolderItems {
     if($null -ne $SameFileInSource){
         if (($SameFileInSource.LastWriteTime -gt $DestinationFolderChildFile.LastWriteTime)) {
             try {
+                Write-Log -Level INFO -Message "Updating file, from: $($SourceFolder+"\"+$SameFileInSource.Name) to:$($DestinationFolder+"\"+$SameFileInSource.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
                 Copy-Item -LiteralPath ($SourceFolder+"\"+$SameFileInSource.Name) -Destination ($DestinationFolder+"\"+$SameFileInSource.Name) -Force -ErrorAction Stop  -WhatIf:$WhatIf
+                Write-Log -Level INFO -Message "Successfully updted file,  from: $($SourceFolder+"\"+$SameFileInSource.Name) to:$($DestinationFolder+"\"+$SameFileInSource.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
 
             }
             catch {
-                <#Do this if a terminating exception happens#>
+                Write-Log -Level ERROR -Message "Filed to update file,  from: $($SourceFolder+"\"+$SameFileInSource.Name) to:$($DestinationFolder+"\"+$SameFileInSource.Name)" -LogFile $LogFile -WriteHostOff:$WriteHostOff
+                Write-Log -Level ERROR -Message $($error[0].ToString() + $error[0].InvocationInfo.PositionMessage) -LogFile $LogFile -WriteHostOff:$WriteHostOff
             }
         }
     }
@@ -191,7 +223,7 @@ function Sync-FolderItems {
    }
    foreach($ChildFolderItem in $SourceFolderChildFolders)
         {
-            Sync-FolderItems -SourceFolder $ChildFolderItem.FullName -DestinationFolder ($DestinationFolder+"\"+$ChildFolderItem.Name)  -WhatIf:$WhatIf 
+            Sync-FolderItems -SourceFolder $ChildFolderItem.FullName -DestinationFolder ($DestinationFolder+"\"+$ChildFolderItem.Name) -LogFile $LogFile -WriteHostOff:$WriteHostOff  -WhatIf:$WhatIf 
         }
 
     
