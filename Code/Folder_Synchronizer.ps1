@@ -41,8 +41,8 @@
         $Source,
 
         [Parameter(
-            Position=1
-            Mandatory=$True
+            Position=1,
+            Mandatory=$True,
             ValueFromPipelineByPropertyName=$True
         )]
         [ValidateScript({Test-Path -LiteralPath $_ -PathType container -IsValid})]
@@ -50,7 +50,7 @@
         $Replica,
 
         [Parameter(
-            Position=2
+            Position=2,
             ValueFromPipelineByPropertyName=$True
         )]
         [ValidateScript({Test-Path -LiteralPath $_ -PathType leaf -IsValid})]
@@ -65,6 +65,30 @@
 
 
     )
+
+
+    Function Write-Log {
+
+        Param(
+            [ValidateSet("INFO", "WARN", "ERROR")]
+            [String]
+            $Level="***",
+     
+            [string]
+            $Message,
+     
+            [string]
+            $logfile
+        )
+     
+        $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+        $Line = "$Stamp $Level $Message"
+     
+        If (Test-Path $logfile -ErrorAction SilentlyContinue) {
+            Add-Content $logfile -Value $Line
+        }
+        Write-Output $Line
+    }
 
 function Sync-FolderItems {
     param (
@@ -103,11 +127,11 @@ function Sync-FolderItems {
     $SourceFolderChildFolders+=$SourceFolderChildItems|Where-Object {$_.PSIsContainer -eq $True}
     $DestinationFolderChildFolders+=$DestinationFolderChildItems|Where-Object {$_.PSIsContainer -eq $True}
 
-    $Diff_Files_Source_Dest=$Diff_Folders_Source_Dest=@()
-    $Diff_Files_Source_Dest+=Compare-Object -ReferenceObject $SourceFolderChildFiles -DifferenceObject $DestinationFolderChildFiles -Property Name
-    $Diff_Folders_Source_Dest+=Compare-Object -ReferenceObject $SourceFolderChildFolders -DifferenceObject $DestinationFolderChildFolders -Property Name
+    $Diff_Files_Source8Dest=$Diff_Folders_Source8Dest=@()
+    $Diff_Files_Source8Dest+=Compare-Object -ReferenceObject $SourceFolderChildFiles -DifferenceObject $DestinationFolderChildFiles -Property Name
+    $Diff_Folders_Source8Dest+=Compare-Object -ReferenceObject $SourceFolderChildFolders -DifferenceObject $DestinationFolderChildFolders -Property Name
 
-   foreach($Diff_File in $Diff_Files_Source_Dest){
+   foreach($Diff_File in $Diff_Files_Source8Dest){
     if ($Diff_File.SideIndicator -eq "<=") {
         Copy-Item -LiteralPath ($SourceFolder+"\"+$Diff_File.Name) -Destination ($DestinationFolder+"\"+$Diff_File.Name) -WhatIf:$WhatIf
     }elseif ($Diff_File.SideIndicator -eq "=>") {
@@ -115,7 +139,7 @@ function Sync-FolderItems {
     }
    }
 
-   foreach ($Diff_Folder in $Diff_Folders_Source_Dest) {
+   foreach ($Diff_Folder in $Diff_Folders_Source8Dest) {
     if ($Diff_Folder.SideIndicator -eq "=>") {
         Remove-Item -LiteralPath ($DestinationFolder+"\"+$Diff_Folder.Name) -Recurse -WhatIf:$WhatIf
     }
